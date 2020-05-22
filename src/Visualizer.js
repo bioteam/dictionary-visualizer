@@ -5,8 +5,20 @@ import MonacoEditor from 'react-monaco-editor';
 import './Visualizer.css';
 
 class Visualizer extends React.Component {
+    constructor(props) {
+        super(props);
+        this.onChange = this.onChange.bind(this);
+    }
   componentDidMount() {
-    console.log(this.props.store);
+    
+  }
+  editorDidMount(editor, monaco) {
+    console.log('editorDidMount', editor);
+    editor.focus();
+  }
+  onChange(newValue, e) {
+      console.log(newValue);
+    this.props.dh.loadSchema(JSON.parse(newValue));
   }
   render() {
    
@@ -22,10 +34,10 @@ class Visualizer extends React.Component {
                     height="600"
                     language="json"
                     theme="vs-dark"
-                    value={JSON.stringify(this.props.code, null, 3)}
+                    value={JSON.stringify(this.props.dh.schema, null, 3)}
                     // options={options}
-                    // onChange={::this.onChange}
-                    // editorDidMount={::this.editorDidMount}
+                    onChange={this.onChange}
+                    editorDidMount={this.editorDidMount}
                 />
             </div>
         </div>

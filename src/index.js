@@ -34,80 +34,88 @@ const findObjectWithRef = (obj, updateFn, root_key = '', level = 0) => {
 // {$ref: "_terms.yaml#/file_format"}
 // {$ref: "#/UUID"}
 
+class DictionaryHelper {
+  constructor(store) {
+    this.store = store;
+  }
+  async fetchSchema(url) {
+    // Fetch S3 schema.jsob
+    this.schema = await (await fetch(url)).json();
+    return this.schema;
+  }
+  async loadSchema(newDict) {
+
+    // Remove .yaml extension from keys 
+    let dict = {};  
+    for (let [key, value] of Object.entries(newDict)) {
+      dict[key.slice(0, -5)] = value;
+    }
+
+    // Recursivly fix references
+    dict = findObjectWithRef(dict, (refObj, rootKey)=> { // This halts for sub objects./...
+      if ( refObj.includes('.yaml') ) {
+        // ABS_FIX
+        // "$ref": "_definitions.yaml#/ubiquitous_properties",
+        // ->
+        // "$ref": "#/_definitions/ubiquitous_properties",
+        refObj = "#/" + refObj.replace('.yaml#', '');
+      } else {
+        // REL FIX
+        // "$ref": "#/state"
+        // ->
+        // "$ref": "#/{_definitions aka root key}/state"
+        refObj = '#/' + rootKey + '/' + refObj.replace('#/', '');
+      }
+      return refObj;
+    });
+
+    // This is a HACK FIX ME!!@!!!
+    dict['_terms']['file_format'] = {description: 'wut'};
+
+
+    let derefDict = await $RefParser.dereference(dict, {
+      continueOnError: false,            // Don't throw on the first error
+      dereference: {
+        circular: true                 // Don't allow circular $refs
+      }
+    });
+
+    await Promise.all(
+      [
+        this.store.dispatch({
+          type: 'RECEIVE_DICTIONARY',
+          data: derefDict
+        }),
+        this.store.dispatch({
+          type: 'RECEIVE_VERSION_INFO',
+          data: version
+        })
+      ],
+    );
+  }
+}
+
+
 async function init() {
   const store = createStore(reducers);
 
+  let dh = new DictionaryHelper(store);
+  
   let url = 'https://bms-gen3-dev.s3.amazonaws.com/datadictionary/master/schema.json';
-
-  if ( window.location.hash ) url = window.location.hash.slice(1);
-
-  // Fetch S3 schema.jsob
-  let response = await fetch(url);
-  let schema = await response.json();
-
-  // Remove .yaml extension from keys 
-  let dict = {};  
-  for (let [key, value] of Object.entries(schema)) {
-    dict[key.slice(0, -5)] = value;
+  if ( window.location.hash ) {
+    url = window.location.hash.slice(1);
   }
 
-  // Recursivly fix references
-  dict = findObjectWithRef(dict, (refObj, rootKey)=> { // This halts for sub objects./...
+  // window.addEventListener('hashchange', () => {
+  //   await dh.loadSchema(await dh.fetchSchema(url));
+  // }, false);
 
-    if ( refObj.includes('.yaml') ) {
-
-      // ABS_FIX
-      // "$ref": "_definitions.yaml#/ubiquitous_properties",
-      // ->
-      // "$ref": "#/_definitions/ubiquitous_properties",
-
-      refObj = "#/" + refObj.replace('.yaml#', '');
-      console.log("ABS FIX -- " + rootKey + ": " + refObj);
-
-    } else {
-
-      // REL FIX
-      // "$ref": "#/state"
-      // ->
-      // "$ref": "#/{_definitions aka root key}/state"
-
-      refObj = '#/' + rootKey + '/' + refObj.replace('#/', '');
-      console.log("REL FIX -- " + rootKey + ": " + refObj);
-    }
-
-
-    return refObj;
-  });
-
-  // Append metaschema TODO?? Doesn't seem to matter anymore
-
-  // This is a HACK FIX ME!!@!!!
-  dict['_terms']['file_format'] = {description: 'wut'};
-
-  let newDict = await $RefParser.dereference(dict, {
-    continueOnError: false,            // Don't throw on the first error
-    dereference: {
-      circular: true                 // Don't allow circular $refs
-    }
-  });
-
-  await Promise.all(
-    [
-      store.dispatch({
-        type: 'RECEIVE_DICTIONARY',
-        data: newDict
-      }),
-      store.dispatch({
-        type: 'RECEIVE_VERSION_INFO',
-        data: version
-      })
-    ],
-  );
+  await dh.loadSchema(await dh.fetchSchema(url));
 
   ReactDOM.render(
     <React.StrictMode>
       <Provider store={store}>
-        <Visualizer code={schema} store={store} />
+        <Visualizer dh={dh} />
       </Provider>
     </React.StrictMode>,
     document.getElementById('root')
