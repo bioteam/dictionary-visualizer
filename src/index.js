@@ -4,7 +4,7 @@ import './index.css';
 import * as serviceWorker from './serviceWorker';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux'
-import ReduxDataDictionary from './DataDictionary';
+import Visualizer from './Visualizer';
 import reducers from './reducers'
 import $RefParser from "@apidevtools/json-schema-ref-parser";
 
@@ -107,7 +107,7 @@ async function init() {
   ReactDOM.render(
     <React.StrictMode>
       <Provider store={store}>
-        <ReduxDataDictionary />
+        <Visualizer code={schema} store={store} />
       </Provider>
     </React.StrictMode>,
     document.getElementById('root')

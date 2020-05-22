@@ -23,6 +23,7 @@
     "prop-types": "^15.6.0",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-monaco-editor": "^0.36.0",
     "react-redux": "^5.0.7",
     "react-scripts": "3.4.1",
     "react-svg-loader": "^3.0.3",
