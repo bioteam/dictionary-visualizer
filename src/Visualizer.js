@@ -16,9 +16,9 @@ class Visualizer extends React.Component {
     console.log('editorDidMount', editor);
     editor.focus();
   }
-  onChange(newValue, e) {
+  async onChange(newValue, e) {
       console.log(newValue);
-    this.props.dh.loadSchema(JSON.parse(newValue));
+    await this.props.dh.loadSchema(JSON.parse(newValue));
   }
   render() {
    

@@ -49,6 +49,7 @@ class DictionaryHelper {
     let dict = {};  
     for (let [key, value] of Object.entries(newDict)) {
       dict[key.slice(0, -5)] = value;
+      // # Delete here? Might be a bug
     }
 
     // Recursivly fix references
@@ -79,6 +80,8 @@ class DictionaryHelper {
         circular: true                 // Don't allow circular $refs
       }
     });
+
+    console.log("Got here w/ Adam")
 
     await Promise.all(
       [
